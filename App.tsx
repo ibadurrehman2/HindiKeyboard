@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { KeyboardMode, TypingSession } from './types';
 import { transliterateText, refineHindiText } from './services/geminiService';
@@ -14,6 +13,7 @@ const App: React.FC = () => {
   const [activeFileId, setActiveFileId] = useState<string>(files[0]?.id || '');
   const [mode, setMode] = useState<KeyboardMode>(KeyboardMode.HINDI);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [suggestionCoords, setSuggestionCoords] = useState({ top: 0, left: 0 });
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -97,6 +97,7 @@ const App: React.FC = () => {
     document.execCommand('insertText', false, suggested + ' ');
 
     setSuggestions([]);
+    setSelectedSuggestionIndex(0);
     updateActiveText(editorRef.current?.innerHTML || '');
     editorRef.current?.focus();
   };
@@ -133,10 +134,12 @@ const App: React.FC = () => {
           if (lastWord && /^[a-zA-Z]+$/.test(lastWord)) {
             transliterateText(lastWord).then(translit => {
               setSuggestions([...translit, lastWord]);
+              setSelectedSuggestionIndex(0);
               updateSuggestionPosition();
             });
           } else {
             setSuggestions([]);
+            setSelectedSuggestionIndex(0);
           }
         }
       }
@@ -154,13 +157,34 @@ const App: React.FC = () => {
           return;
         }
       }
-      if (e.key === ' ' || e.key === 'Enter') {
+      
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
-        applySuggestion(suggestions[0]);
+        setSelectedSuggestionIndex(prev => (prev + 1) % suggestions.length);
         return;
       }
+      
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applySuggestion(suggestions[selectedSuggestionIndex]);
+        return;
+      }
+
+      if (e.key === ' ' ) {
+        e.preventDefault();
+        applySuggestion(suggestions[selectedSuggestionIndex]);
+        return;
+      }
+
       if (e.key === 'Escape') {
         setSuggestions([]);
+        setSelectedSuggestionIndex(0);
       }
     }
   };
@@ -208,6 +232,7 @@ const App: React.FC = () => {
     setFiles([newFile, ...files]);
     setActiveFileId(newId);
     setSuggestions([]);
+    setSelectedSuggestionIndex(0);
   };
 
   const deleteFile = (e: React.MouseEvent, id: string) => {
@@ -257,7 +282,7 @@ const App: React.FC = () => {
 
   const groupedFiles = (Object.entries(files.reduce((groups, file) => {
     const date = formatDate(file.timestamp);
-    if (!groups[date]) groups[groups.length - 1]?.id === date ? null : (groups[date] = []);
+    if (!groups[date]) groups[date] = [];
     groups[date].push(file);
     return groups;
   }, {} as Record<string, TypingSession[]>)) as [string, TypingSession[]][]);
@@ -320,6 +345,7 @@ const App: React.FC = () => {
                     onClick={() => {
                       setActiveFileId(file.id);
                       setSuggestions([]);
+                      setSelectedSuggestionIndex(0);
                     }}
                     className={`group relative flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-xl cursor-pointer transition-all ${
                       activeFileId === file.id 
@@ -450,9 +476,10 @@ const App: React.FC = () => {
                     <button
                       key={idx}
                       onClick={() => applySuggestion(s)}
-                      className={`text-left px-4 py-3 flex items-center gap-3 text-sm transition-all active:scale-[0.97] border-b border-slate-50 last:border-0 ${
-                        idx === 0 
-                          ? 'bg-emerald-50/50 text-emerald-900 font-bold hover:bg-emerald-100/50' 
+                      onMouseEnter={() => setSelectedSuggestionIndex(idx)}
+                      className={`text-left px-4 py-3 flex items-center gap-3 text-sm transition-all border-b border-slate-50 last:border-0 ${
+                        selectedSuggestionIndex === idx 
+                          ? 'bg-emerald-50 text-emerald-900 font-bold' 
                           : 'hover:bg-slate-50 text-slate-700'
                       }`}
                     >

@@ -1,10 +1,25 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desh Hindi - Simple Hindi Typing</title>
+    <title>Desh Hindi Typing - Fast English to Hindi Transliteration & Professional Editor</title>
+    <meta name="description" content="Desh Hindi Typing is the best free online Hindi editor. Type in Hindi using English (transliteration), use AI to refine grammar, and save your documents locally. Perfect for Hindi blogging, letters, and social media.">
+    <meta name="keywords" content="hindi typing, english to hindi, hindi transliteration, devanagari editor, hindi grammar correction, online hindi keyboard, desh keyboard hindi">
+    <meta name="author" content="Desh Keyboard">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://deshkeyboard.com/">
+    <meta property="og:title" content="Desh Hindi Typing - Online Hindi Editor">
+    <meta property="og:description" content="Fast English to Hindi transliteration with AI-powered grammar polishing. Write professional Hindi documents with ease.">
+    <meta property="og:image" content="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/keyboard.svg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Desh Hindi Typing - Online Hindi Editor">
+    <meta property="twitter:description" content="Fast English to Hindi transliteration with AI-powered grammar polishing. Write professional Hindi documents with ease.">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap" rel="stylesheet">
@@ -23,12 +38,10 @@
 
         /* Print Optimization */
         @media print {
-            /* General page resets */
             @page {
                 size: auto;
                 margin: 15mm;
             }
-
             body, html {
                 height: auto !important;
                 background: white !important;
@@ -37,7 +50,6 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-
             #root, main, .flex-grow {
                 display: block !important;
                 height: auto !important;
@@ -45,17 +57,12 @@
                 position: static !important;
                 width: 100% !important;
             }
-
-            /* Hidden elements */
             header, aside, .print\:hidden, .sticky, .fixed, nav, footer, button {
                 display: none !important;
             }
-
-            /* Container overrides */
             .bg-[#f8f9fa] {
                 background: white !important;
             }
-            
             .max-w-\[850px\] {
                 max-width: none !important;
                 width: 100% !important;
@@ -63,22 +70,16 @@
                 box-shadow: none !important;
                 margin: 0 !important;
             }
-
             .p-16, .sm\:p-24 {
                 padding: 0 !important;
             }
-
             .min-h-\[1100px\] {
                 min-height: 0 !important;
             }
-
-            /* Text styling */
             .devanagari {
                 color: black !important;
                 line-height: 1.6 !important;
             }
-            
-            /* List styling */
             ul, ol {
                 padding-left: 1.5rem !important;
                 margin-bottom: 1rem !important;
@@ -87,7 +88,6 @@
             ol { list-style-type: decimal !important; }
         }
         
-        /* Ensure lists look right in editor */
         [contenteditable] ul {
             list-style-type: disc;
             padding-left: 2rem;
@@ -96,7 +96,6 @@
             list-style-type: decimal;
             padding-left: 2rem;
         }
-        /* Custom placeholder for contenteditable */
         [contenteditable]:empty:before {
             content: attr(placeholder);
             color: #cbd5e1;
