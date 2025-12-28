@@ -1,0 +1,7 @@
+{
+  "name": "DeshKeyboard Hindi Pro",
+  "description": "Professional Devanagari editor with real-time transliteration, local storage persistence, and AI-powered grammar polishing.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
