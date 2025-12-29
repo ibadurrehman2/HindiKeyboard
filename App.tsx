@@ -21,6 +21,9 @@ const App: React.FC = () => {
   const [fontSize, setFontSize] = useState(24);
   const [activeStyles, setActiveStyles] = useState<{ [key: string]: boolean }>({});
   
+  // Responsive States
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   // Feedback Modal State
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackBody, setFeedbackBody] = useState('');
@@ -109,10 +112,16 @@ const App: React.FC = () => {
       const rects = range.getClientRects();
       if (rects.length > 0) {
         const rect = rects[0];
-        setSuggestionCoords({
-          top: rect.bottom + window.scrollY + 8,
-          left: rect.left + window.scrollX
-        });
+        
+        // Ensure suggestion box stays within viewport
+        let top = rect.bottom + window.scrollY + 8;
+        let left = rect.left + window.scrollX;
+        
+        if (left + 192 > window.innerWidth) { // 192px is w-48
+          left = window.innerWidth - 208;
+        }
+        
+        setSuggestionCoords({ top, left });
       }
     }
   };
@@ -233,6 +242,7 @@ const App: React.FC = () => {
     setActiveFileId(newId);
     setSuggestions([]);
     setSelectedSuggestionIndex(0);
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
   const deleteFile = (e: React.MouseEvent, id: string) => {
@@ -288,7 +298,7 @@ const App: React.FC = () => {
   }, {} as Record<string, TypingSession[]>)) as [string, TypingSession[]][]);
 
   const toolbarBtnClass = (active: boolean) => 
-    `p-2 rounded-lg transition-colors flex items-center justify-center w-9 h-9 ${
+    `p-2 rounded-lg transition-colors flex items-center justify-center w-9 h-9 shrink-0 ${
       active 
         ? 'bg-emerald-100 text-emerald-700 font-bold' 
         : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'
@@ -313,8 +323,17 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-[#f8f9fa] overflow-hidden text-slate-800 font-sans print:bg-white print:h-auto print:block print:overflow-visible">
-      {/* Sidebar - Hidden on Print */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm z-20 print:hidden">
+      
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-xl md:shadow-sm z-50 transform transition-transform duration-300 ease-in-out print:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#0f3d3d] text-white rounded-xl flex items-center justify-center font-bold text-lg devanagari shadow-inner">
@@ -322,6 +341,9 @@ const App: React.FC = () => {
             </div>
             <span className="font-bold text-slate-900 tracking-tight text-lg">Desh Hindi</span>
           </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-400 hover:text-slate-600">
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
         <div className="px-4 mb-4">
@@ -346,6 +368,7 @@ const App: React.FC = () => {
                       setActiveFileId(file.id);
                       setSuggestions([]);
                       setSelectedSuggestionIndex(0);
+                      if (window.innerWidth < 768) setIsSidebarOpen(false);
                     }}
                     className={`group relative flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-xl cursor-pointer transition-all ${
                       activeFileId === file.id 
@@ -358,7 +381,7 @@ const App: React.FC = () => {
                     </span>
                     <button 
                       onClick={(e) => deleteFile(e, file.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 transition-opacity"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 hover:text-rose-500 transition-opacity"
                     >
                       <i className="fa-solid fa-xmark text-xs"></i>
                     </button>
@@ -382,29 +405,37 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-grow flex flex-col overflow-hidden relative print:static print:h-auto print:overflow-visible print:block">
-        {/* Editor Toolbar - Hidden on Print */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center px-6 gap-2 shrink-0 z-40 print:hidden">
-          <div className="flex items-center border-r border-slate-200 pr-3 mr-1">
-            <button onClick={() => execCommand('undo')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Undo"><i className="fa-solid fa-rotate-left"></i></button>
-            <button onClick={() => execCommand('redo')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Redo"><i className="fa-solid fa-rotate-right"></i></button>
+        
+        {/* Editor Toolbar - Optimized for Mobile */}
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center px-4 gap-2 shrink-0 z-40 print:hidden overflow-x-auto no-scrollbar">
+          
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="md:hidden p-2 -ml-1 mr-1 text-slate-500 hover:bg-slate-100 rounded-lg shrink-0"
+          >
+            <i className="fa-solid fa-bars-staggered"></i>
+          </button>
+
+          <div className="flex items-center border-r border-slate-200 pr-2 mr-1 shrink-0">
+            <button onClick={() => execCommand('undo')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Undo"><i className="fa-solid fa-rotate-left text-sm"></i></button>
+            <button onClick={() => execCommand('redo')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Redo"><i className="fa-solid fa-rotate-right text-sm"></i></button>
           </div>
 
-          <div className="flex items-center gap-1 border-r border-slate-200 pr-3 mr-1">
+          <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1 shrink-0">
             <button onClick={() => execCommand('bold')} className={toolbarBtnClass(!!activeStyles.bold)} title="Bold">B</button>
             <button onClick={() => execCommand('italic')} className={toolbarBtnClass(!!activeStyles.italic)} title="Italic">/</button>
             <button onClick={() => execCommand('underline')} className={toolbarBtnClass(!!activeStyles.underline)} title="Underline">U</button>
           </div>
 
-          <div className="flex items-center gap-1 border-r border-slate-200 pr-3 mr-1">
-            <button onClick={() => execCommand('justifyLeft')} className={toolbarBtnClass(!!activeStyles.justifyLeft)} title="Align Left"><i className="fa-solid fa-align-left"></i></button>
-            <button onClick={() => execCommand('justifyCenter')} className={toolbarBtnClass(!!activeStyles.justifyCenter)} title="Align Center"><i className="fa-solid fa-align-center"></i></button>
-            <button onClick={() => execCommand('insertUnorderedList')} className={toolbarBtnClass(!!activeStyles.insertUnorderedList)} title="Unordered List"><i className="fa-solid fa-list-ul"></i></button>
-            <button onClick={() => execCommand('insertOrderedList')} className={toolbarBtnClass(!!activeStyles.insertOrderedList)} title="Ordered List"><i className="fa-solid fa-list-ol"></i></button>
+          <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1 shrink-0">
+            <button onClick={() => execCommand('justifyLeft')} className={toolbarBtnClass(!!activeStyles.justifyLeft)} title="Align Left"><i className="fa-solid fa-align-left text-sm"></i></button>
+            <button onClick={() => execCommand('justifyCenter')} className={toolbarBtnClass(!!activeStyles.justifyCenter)} title="Align Center"><i className="fa-solid fa-align-center text-sm"></i></button>
+            <button onClick={() => execCommand('insertUnorderedList')} className={toolbarBtnClass(!!activeStyles.insertUnorderedList)} title="Unordered List"><i className="fa-solid fa-list-ul text-sm"></i></button>
+            <button onClick={() => execCommand('insertOrderedList')} className={toolbarBtnClass(!!activeStyles.insertOrderedList)} title="Ordered List"><i className="fa-solid fa-list-ol text-sm"></i></button>
           </div>
 
-          {/* Granular Font Size Control */}
-          <div className="flex items-center gap-2 border-r border-slate-200 pr-4 mr-1">
-            <i className="fa-solid fa-font text-slate-400 text-xs"></i>
+          <div className="flex items-center gap-2 border-r border-slate-200 pr-3 mr-1 shrink-0">
+            <i className="fa-solid fa-font text-slate-400 text-xs hidden sm:block"></i>
             <input 
               type="range" 
               min="8" 
@@ -412,45 +443,46 @@ const App: React.FC = () => {
               step="1"
               value={fontSize} 
               onChange={(e) => handleFontSizeChange(parseInt(e.target.value))}
-              className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+              className="w-16 sm:w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
               title="Font Size Slider"
             />
-            <span className="w-8 text-[11px] font-bold text-slate-500 tabular-nums select-none">{fontSize}</span>
+            <span className="w-6 text-[11px] font-bold text-slate-500 tabular-nums select-none">{fontSize}</span>
           </div>
 
-          <div className="flex items-center gap-2 flex-grow">
+          <div className="flex items-center gap-2 flex-grow shrink-0">
             <button 
               onClick={handleRefine}
               disabled={isRefining || !activeFile.text.trim()}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-indigo-100 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all border border-indigo-100 shrink-0 ${
                 isRefining 
                   ? 'bg-indigo-50 text-indigo-400' 
                   : 'text-indigo-600 hover:bg-indigo-50 active:scale-95'
               }`}
             >
               <i className={`fa-solid ${isRefining ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`}></i>
-              AI REFINE
+              <span className="hidden xs:inline">AI REFINE</span>
+              <span className="xs:hidden">AI</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button onClick={triggerImageUpload} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Insert Image"><i className="fa-solid fa-image text-sm"></i></button>
             <button 
               onClick={handlePrint} 
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-all font-bold text-xs" 
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-all font-bold text-xs shrink-0" 
               title="Print"
             >
               <i className="fa-solid fa-print text-sm"></i>
-              PRINT
+              <span className="hidden sm:inline">PRINT</span>
             </button>
           </div>
         </header>
 
         {/* Editor Container */}
-        <div className="flex-grow overflow-y-auto bg-[#f8f9fa] flex flex-col items-center py-8 px-4 scroll-smooth print:p-0 print:bg-white print:overflow-visible print:block print:h-auto">
-          <div className="w-full max-w-[850px] bg-white min-h-[1100px] rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.1)] border border-slate-200 flex flex-col relative transition-shadow hover:shadow-md mb-20 print:shadow-none print:border-none print:m-0 print:max-w-none print:min-h-0 print:block">
+        <div className="flex-grow overflow-y-auto bg-[#f8f9fa] flex flex-col items-center py-4 md:py-8 px-2 md:px-4 scroll-smooth print:p-0 print:bg-white print:overflow-visible print:block print:h-auto">
+          <div className="w-full max-w-[850px] bg-white min-h-screen md:min-h-[1100px] rounded-sm md:shadow-[0_1px_3px_rgba(0,0,0,0.1)] md:border border-slate-200 flex flex-col relative transition-shadow hover:shadow-md mb-20 md:mb-32 print:shadow-none print:border-none print:m-0 print:max-w-none print:min-h-0 print:block">
             
-            <div className="flex-grow p-16 sm:p-24 relative print:p-0">
+            <div className="flex-grow p-6 sm:p-16 md:p-24 relative print:p-0">
               <div
                 ref={editorRef}
                 contentEditable
@@ -459,7 +491,7 @@ const App: React.FC = () => {
                 onMouseUp={updateActiveStyles}
                 onKeyUp={updateActiveStyles}
                 placeholder="यहाँ टाइप करना शुरू करें..."
-                className="w-full h-full min-h-[800px] outline-none devanagari leading-[1.8] text-slate-800 border-none bg-transparent print:min-h-0 print:h-auto"
+                className="w-full h-full min-h-[500px] md:min-h-[800px] outline-none devanagari leading-[1.8] text-slate-800 border-none bg-transparent print:min-h-0 print:h-auto"
                 style={{ fontSize: `${fontSize}px` }}
               />
 
@@ -491,63 +523,65 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* Bottom Floating Editor Controls - Hidden on Print */}
-            <div className="sticky bottom-8 left-1/2 -translate-x-1/2 w-fit px-6 py-3 bg-white/95 backdrop-blur shadow-2xl border border-slate-200/50 rounded-2xl flex items-center gap-6 z-30 ring-1 ring-black/5 print:hidden">
-              <div className="flex p-1 bg-slate-100/50 rounded-xl">
+            {/* Bottom Floating Editor Controls - Fully Responsive */}
+            <div className="fixed md:sticky bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 w-[92%] sm:w-fit px-3 sm:px-6 py-2 sm:py-3 bg-white/95 backdrop-blur shadow-2xl border border-slate-200/50 rounded-2xl flex flex-col sm:flex-row items-center gap-2 sm:gap-6 z-30 ring-1 ring-black/5 print:hidden">
+              <div className="flex p-1 bg-slate-100/50 rounded-xl w-full sm:w-auto">
                 <button 
                   onClick={() => setMode(KeyboardMode.HINDI)}
-                  className={`px-6 py-2 rounded-lg text-xs font-black transition-all ${mode === KeyboardMode.HINDI ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`flex-grow sm:px-6 py-2 rounded-lg text-[10px] font-black transition-all ${mode === KeyboardMode.HINDI ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   हिन्दी
                 </button>
                 <button 
                   onClick={() => setMode(KeyboardMode.ENGLISH)}
-                  className={`px-6 py-2 rounded-lg text-xs font-black transition-all ${mode === KeyboardMode.ENGLISH ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`flex-grow sm:px-6 py-2 rounded-lg text-[10px] font-black transition-all ${mode === KeyboardMode.ENGLISH ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   ENGLISH
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-slate-200"></div>
+              <div className="hidden sm:block h-6 w-px bg-slate-200"></div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center">
                 <button 
                   onClick={startVoiceTyping}
-                  className={`group flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl transition-all text-xs font-bold ${isListening ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                  className={`flex-grow sm:flex-none group flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-slate-200 rounded-xl transition-all text-[10px] font-bold ${isListening ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
                   title="Voice Typing"
                 >
                   <i className={`fa-solid ${isListening ? 'fa-microphone' : 'fa-microphone-lines'} transition-colors`}></i>
-                  {isListening ? 'LISTENING' : 'VOICE'}
+                  <span className="hidden xs:inline">{isListening ? 'LISTENING' : 'VOICE'}</span>
                 </button>
                 <button 
                   onClick={copyText}
-                  className="group flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-xs font-bold text-slate-600"
+                  className="flex-grow sm:flex-none group flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-[10px] font-bold text-slate-600"
                 >
                   <i className="fa-solid fa-copy text-slate-400 group-hover:text-emerald-500 transition-colors"></i>
                   COPY
                 </button>
                 <button 
                   onClick={() => setIsKeyboardVisible(!isKeyboardVisible)}
-                  className={`flex items-center justify-center w-10 h-10 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all ${isKeyboardVisible ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'text-slate-400'}`}
+                  className={`shrink-0 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all ${isKeyboardVisible ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'text-slate-400'}`}
                 >
                   <i className={`fa-solid fa-keyboard transition-transform ${isKeyboardVisible ? 'scale-110' : ''}`}></i>
                 </button>
               </div>
             </div>
 
-            {/* In-Editor Keyboard Overlay - Hidden on Print */}
+            {/* In-Editor Keyboard Overlay - Optimized for Touch */}
             {isKeyboardVisible && (
-              <div className="bg-slate-50/80 backdrop-blur-sm p-8 border-t border-slate-200 animate-in slide-in-from-bottom duration-300 rounded-b-sm print:hidden">
-                <div className="flex justify-between items-center mb-6 px-4">
+              <div className="fixed md:static inset-x-0 bottom-0 bg-white/95 md:bg-slate-50/80 backdrop-blur-md md:backdrop-blur-sm p-4 md:p-8 border-t border-slate-200 animate-in slide-in-from-bottom duration-300 rounded-b-sm z-[60] md:z-auto print:hidden">
+                <div className="flex justify-between items-center mb-4 md:mb-6 px-2 md:px-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Devanagari Layout</h4>
-                  <button onClick={() => setIsKeyboardVisible(false)} className="text-slate-300 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>
+                  <button onClick={() => setIsKeyboardVisible(false)} className="p-2 text-slate-300 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>
                 </div>
-                <Keyboard onKeyPress={(key) => {
-                  if (key === 'BACKSPACE') execCommand('delete');
-                  else if (key === 'ENTER') execCommand('insertLineBreak');
-                  else execCommand('insertText', key);
-                  handleInput();
-                }} darkMode={false} />
+                <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden pb-4 md:pb-0">
+                  <Keyboard onKeyPress={(key) => {
+                    if (key === 'BACKSPACE') execCommand('delete');
+                    else if (key === 'ENTER') execCommand('insertLineBreak');
+                    else execCommand('insertText', key);
+                    handleInput();
+                  }} darkMode={false} />
+                </div>
               </div>
             )}
           </div>
@@ -599,6 +633,17 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Scroll to Top Hide Custom UI for Toolbar */}
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };
